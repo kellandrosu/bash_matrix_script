@@ -1,0 +1,18 @@
+#!/bin/bash
+if test $1 = "dims"
+then
+	echo "print dimensions"
+elif test $1 = "transpose"
+then
+	echo "print transpose the matrix"
+elif test $1 = "mean"
+then
+	echo "print row vector mean to stdout"
+elif test $1 = "add"
+then
+	echo "add two matrices"
+elif test $1 = "multiply"
+then
+	echo "multiply two matries"
+fi
+
