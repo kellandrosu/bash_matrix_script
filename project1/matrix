@@ -1,41 +1,97 @@
 #!/bin/bash -e
 
 
-PrintDimensions(){	
+GetColumns(){
+	# DESCRIPTION
+	#	calculates the number of columns in a matrix
+	# SYNOPSIS
+	# 	GetColumns FILENAME
+	cols=0
+	read line <$1
+	for _ in $line 
+	do
+		cols=$(expr $cols + 1)
+	done
+}
+
+GetRows(){
+	# DESCRIPTION
+	#	calculates the number of rows in a matrix
+	# SYNOPSIS
+	# 	GetRows FILENAME
 	rows=0
-	
-	while read myLine
+	while read line
 	do
 		rows=$(expr $rows + 1)
-		cols=0
+	done <$1
+}
 
-		for i in $myLine
-		do
-			cols=$(expr $cols + 1)
-		done
+PrintDimensions(){	
+	# DESCRIPTION
+	#	takes a filename as argument and prints its matrix dimensions
 
-	done < $1
-
+	cols=0
+	rows=0
+	GetColumns $1 
+	GetRows $1  
 	echo "$rows $cols"
 }
 
 
+Transpose(){
+	# DESCRIPTION: 
+	#	takes a filename as argument and transposes its matrix elements
+
+	#create safe tempfile
+	tempfile="tempfile$$"
+	while [ -f $tempfile ]
+	do
+		tempfile="$tempfile$$"
+	done
+	touch $tempfile
+
+	#store elements linearly from left to right
+	while read firstline 
+	do
+		for i in $firstline
+		do
+			echo "$i" >>$tempfile
+		done
+	done <$1
+
+	GetRows $1 
+	cols=$rows
+	counter=0
+
+	rm -f $1 
+	touch $1
+
+	#print elements top down
+	while read elem
+	do
+		counter=$(expr $counter + 1 )
+		echo $elem | tr '\n' '\t' | cat >>$1
+		if [ $counter = $cols ]
+		then
+			counter=0
+			echo "" >>$1
+		fi
+		
+	done <$tempfile
+
+	rm $tempfile -f
+}
 
 #PARSE ARGUMENTS
 if test $1 = "dims"
 then
-	if test $# = 1
-	then
-		echo "matrix dimensions requires one file" 1>&2 
+	if	[ $# -ne 2 ]
+		then echo "invalid number of arguments" >&2
 		exit 1
-	elif test  $# -gt 2 
-	then
-		echo "too many arguments" 1>&2 
-		exit 2
 	elif [ ! -f $2 ]
 	then
-		echo "file $2 does not exist"
-		exit 3
+		echo -e "error opening $2" >&2
+		exit 2
 	else
 		PrintDimensions $2
 	fi
@@ -44,7 +100,18 @@ then
 
 elif test $1 = "transpose"
 then
-	echo "print transpose the matrix"
+
+	if	[ $# -ne 2 ]
+		then echo "invalid number of arguments" >&2
+		exit 1
+	elif [ ! -f $2 ]
+	then 
+		echo -e "error opening $2" >&2
+		exit 2
+	else
+		Transpose $2
+	fi
+
 
 elif test $1 = "mean"
 then
@@ -58,6 +125,7 @@ elif test $1 = "multiply"
 then
 	echo "multiply two matries"
 else
-	echo "argument needed"
+	echo "could not find command $1" >&2
+	exit 1 
 fi
 
