@@ -27,32 +27,26 @@ transpose(){
 	touch $tempfile
 
 	#number of existing rows = number of new columns
-	newcols=$( wc -l <$1 )
+	cols=$( wc -w < <( head <$1 -n 1 ) )
+	rows=$( wc -l <$1 )
+	newcols=$rows
+	newrows=$cols
 
-	#store all elements linearly as read left to right
-	while read firstline 
+	#iterate i through cols
+	i=0
+	while [ $i != $cols ]
 	do
-		for i in $firstline
+	#iterate j through rows
+		while read -a line
 		do
-			echo "$i" >>$tempfile
-		done
-	done <$1
+			echo ${line[$i]} | tr '\n' '\t' >>$tempfile		#cat ith character of jth row
+		done <$1
+		
+		echo "" >>$tempfile				#newline
+		i=$(expr $i + 1)
+	done
 
-	rm -f $1 
-	touch $1
-
-	#print elements adding newline for each column
-	while read elem
-	do
-		counter=$(expr $counter + 1 )
-		echo $elem | tr '\n' '\t' | cat >>$1
-		if [ $counter = $newcols ]
-		then
-			counter=0
-			echo "" >>$1
-		fi	
-	done <$tempfile
-
+	cat $tempfile >$1 
 	rm $tempfile -f
 	exit 0
 }
