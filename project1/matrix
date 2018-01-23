@@ -4,51 +4,36 @@
 dims(){	
 	# DESCRIPTION
 	#	takes a filename as argument and prints its matrix dimensions
-	#	exits 0
-	
 	cols=$( wc -w < <( head <$1 -n 1 ) )
 	rows=$( wc -l <$1 )
 	echo "$rows $cols"
-	exit 0
 }
 
 
 transpose(){
 	# DESCRIPTION: 
 	#	takes a filename as argument and transposes its matrix elements
-	#	exits 0
-
-	#create safe tempfile
-	tempfile="tempfile$$"
-	while [ -f $tempfile ]
-	do
-		tempfile="$tempfile$$"
-	done
-	touch $tempfile
 
 	#number of existing rows = number of new columns
 	cols=$( wc -w < <( head <$1 -n 1 ) )
 	rows=$( wc -l <$1 )
-	newcols=$rows
-	newrows=$cols
-
+	
 	#iterate i through cols
 	i=0
 	while [ $i != $cols ]
 	do
 	#iterate j through rows
+	j=1
 		while read -a line
 		do
-			echo ${line[$i]} | tr '\n' '\t' >>$tempfile		#cat ith character of jth row
+			echo -n -e "${line[$i]}"				#cat ith character of jth row
+			[[ $j -lt $rows ]] && echo -e -n "\t"	#tab-separate elements unless its last element	
+			j=$(expr $j + 1)
 		done <$1
 		
-		echo "" >>$tempfile				#newline
+		echo ""				#newline
 		i=$(expr $i + 1)
 	done
-
-	cat $tempfile >$1 
-	rm $tempfile -f
-	exit 0
 }
 
 
@@ -78,7 +63,8 @@ add() {
 		read -a line2 < <( tail -n +$counter $2 )		#read $2 as array starting from line $counter
 		for i in ${!line1[@]}							#iterated through line1 without expanding i 
 		do
-			echo $(expr ${line1[$i]} + ${line2[$i]} ) | tr '\n' '\t'
+			echo -n $(expr ${line1[$i]} + ${line2[$i]} )
+			[[ $i -lt $(expr $m1cols - 1 ) ]] && echo -e -n "\t"  	 	#tab-separate elements unless its last element
 		done
 		echo ""
 	done <$1
@@ -98,16 +84,28 @@ echo "multiply"
 #PARSE ARGUMENTS
 #check single matrix operations
 if [ $1 = "dims" ] || [ $1 = "transpose" ] || [ $1 = "mean" ] ; then
+
 	if [ $# = 1 ] ; then
-		if [ -f MATRIX ] ; then
-			$1 MATRIX	
-		else
-			echo "MATRIX file does not exist" >&2
-			exit 2
-		fi
+		
+		#create safe tempfile to store input matrix
+		tempMatrix="tempfile$$"
+		while [ -f $tempMatrix ]
+		do
+			tempMatrix="$tempMatrix$$"
+		done
+		touch $tempMatrix
+
+		cat >$tempMatrix
+
+		$1 $tempMatrix
+	
+		rm $tempMatrix -f
+		exit 0
+
 	elif [ $# = 2 ]; then
 		if [ -f $2 ] ; then
 			$1 "$2"
+			exit 0
 		else 
 			echo -e "error opening $2" >&2
 			exit 2
@@ -127,6 +125,7 @@ elif [ $1 = "add" ] || [ $1 = "multiply" ] ; then
 			exit 2
 		else
 			$1 "${@:2}"
+			exit 0
 		fi
 	else
 		echo -e "invalid number of arguments" >&2
