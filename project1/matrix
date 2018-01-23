@@ -50,7 +50,7 @@ Transpose(){
 	done
 	touch $tempfile
 
-	#store elements linearly from left to right
+	#store all elements linearly as read left to right
 	while read firstline 
 	do
 		for i in $firstline
@@ -66,7 +66,7 @@ Transpose(){
 	rm -f $1 
 	touch $1
 
-	#print elements top down
+	#print elements adding newline for each column
 	while read elem
 	do
 		counter=$(expr $counter + 1 )
@@ -75,14 +75,50 @@ Transpose(){
 		then
 			counter=0
 			echo "" >>$1
-		fi
-		
+		fi	
 	done <$tempfile
 
 	rm $tempfile -f
 }
 
+
+
+Add() {
+	# DESCRIPTION
+	#	adds two matrices
+
+	#check if addition is valid
+	GetColumns $1
+	firstCols=$cols
+	GetColumns $2
+	GetRows $1
+	firstRows=$rows
+	GetRows $2
+	if  [ $firstCols != $cols ]  ||  [ $firstRows -ne $rows ]  
+	then
+		echo "matrices cannot be added" >&2
+		exit 4
+	fi
+
+	#do addition
+	counter=0
+	while read -a line1
+	do
+		counter=$(expr $counter + 1 )
+		read -a line2 < <( tail -n +$counter $2 )		#read $2 as array starting from line $counter
+		for i in ${!line1[@]}							#iterated through line1 without expanding i 
+		do
+			echo $(expr ${line1[$i]} + ${line2[$i]} ) | tr '\n' '\t'
+		done
+		echo ""
+	done <$1
+
+}
+
+
+
 #PARSE ARGUMENTS
+
 if test $1 = "dims"
 then
 	if	[ $# -ne 2 ]
@@ -92,15 +128,12 @@ then
 	then
 		echo -e "error opening $2" >&2
 		exit 2
-	else
-		PrintDimensions $2
 	fi
-
-
+		PrintDimensions $2
+	
 
 elif test $1 = "transpose"
 then
-
 	if	[ $# -ne 2 ]
 		then echo "invalid number of arguments" >&2
 		exit 1
@@ -110,20 +143,37 @@ then
 		exit 2
 	else
 		Transpose $2
+		exit 0
 	fi
 
+
+elif test $1 = "add"
+then
+	if	[ $# -ne 3 ]
+	then echo "invalid number of arguments" >&2
+		exit 1
+	elif [ ! -f $2 ]
+	then 
+		echo -e "error opening $2" >&2
+		exit 2
+	elif [ ! -f $3 ]
+	then 
+		echo -e "error opening $3" >&2
+		exit 2
+	fi	
+	Add "${@:2}"
+	exit 0
 
 elif test $1 = "mean"
 then
 	echo "print row vector mean to stdout"
 
-elif test $1 = "add"
-then
-	echo "add two matrices"
 
 elif test $1 = "multiply"
 then
 	echo "multiply two matries"
+
+
 else
 	echo "could not find command $1" >&2
 	exit 1 
