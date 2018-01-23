@@ -1,46 +1,22 @@
 #!/bin/bash -e
 
 
-GetColumns(){
-	# DESCRIPTION
-	#	calculates the number of columns in a matrix
-	# SYNOPSIS
-	# 	GetColumns FILENAME
-	cols=0
-	read line <$1
-	for _ in $line 
-	do
-		cols=$(expr $cols + 1)
-	done
-}
-
-GetRows(){
-	# DESCRIPTION
-	#	calculates the number of rows in a matrix
-	# SYNOPSIS
-	# 	GetRows FILENAME
-	rows=0
-	while read line
-	do
-		rows=$(expr $rows + 1)
-	done <$1
-}
-
-PrintDimensions(){	
+dims(){	
 	# DESCRIPTION
 	#	takes a filename as argument and prints its matrix dimensions
-
-	cols=0
-	rows=0
-	GetColumns $1 
-	GetRows $1  
+	#	exits 0
+	
+	cols=$( wc -w < <( head <$1 -n 1 ) )
+	rows=$( wc -l <$1 )
 	echo "$rows $cols"
+	exit 0
 }
 
 
-Transpose(){
+transpose(){
 	# DESCRIPTION: 
 	#	takes a filename as argument and transposes its matrix elements
+	#	exits 0
 
 	#create safe tempfile
 	tempfile="tempfile$$"
@@ -49,6 +25,9 @@ Transpose(){
 		tempfile="$tempfile$$"
 	done
 	touch $tempfile
+
+	#number of existing rows = number of new columns
+	newcols=$( wc -l <$1 )
 
 	#store all elements linearly as read left to right
 	while read firstline 
@@ -59,10 +38,6 @@ Transpose(){
 		done
 	done <$1
 
-	GetRows $1 
-	cols=$rows
-	counter=0
-
 	rm -f $1 
 	touch $1
 
@@ -71,7 +46,7 @@ Transpose(){
 	do
 		counter=$(expr $counter + 1 )
 		echo $elem | tr '\n' '\t' | cat >>$1
-		if [ $counter = $cols ]
+		if [ $counter = $newcols ]
 		then
 			counter=0
 			echo "" >>$1
@@ -79,23 +54,24 @@ Transpose(){
 	done <$tempfile
 
 	rm $tempfile -f
+	exit 0
 }
 
 
-
-Add() {
+add() {
 	# DESCRIPTION
 	#	adds two matrices
 
 	#check if addition is valid
-	GetColumns $1
-	firstCols=$cols
-	GetColumns $2
-	GetRows $1
-	firstRows=$rows
-	GetRows $2
-	if  [ $firstCols != $cols ]  ||  [ $firstRows -ne $rows ]  
-	then
+	m1cols=$( wc -w < <( head <$1 -n 1 ) )
+	m2cols=$( wc -w < <( head <$2 -n 1 ) )
+	m1rows=$( wc -l <$1 )
+	m2rows=$( wc -l <$2 )
+
+	if [ $m1cols != $m2cols ]; then
+		echo "matrices cannot be added" >&2
+		exit 4
+	elif [ $m1rows != $m2rows ]; then
 		echo "matrices cannot be added" >&2
 		exit 4
 	fi
@@ -116,66 +92,53 @@ Add() {
 }
 
 
+mean(){
+	echo "do mean"
+}
+
+multiply() {
+echo "multiply"
+}
+
 
 #PARSE ARGUMENTS
-
-if test $1 = "dims"
-then
-	if	[ $# -ne 2 ]
-		then echo "invalid number of arguments" >&2
-		exit 1
-	elif [ ! -f $2 ]
-	then
-		echo -e "error opening $2" >&2
-		exit 2
-	fi
-		PrintDimensions $2
-	
-
-elif test $1 = "transpose"
-then
-	if	[ $# -ne 2 ]
-		then echo "invalid number of arguments" >&2
-		exit 1
-	elif [ ! -f $2 ]
-	then 
-		echo -e "error opening $2" >&2
-		exit 2
+#check single matrix operations
+if [ $1 = "dims" ] || [ $1 = "transpose" ] || [ $1 = "mean" ] ; then
+	if [ $# = 1 ] ; then
+		if [ -f MATRIX ] ; then
+			$1 MATRIX	
+		else
+			echo "MATRIX file does not exist" >&2
+			exit 2
+		fi
+	elif [ $# = 2 ]; then
+		if [ -f $2 ] ; then
+			$1 "$2"
+		else 
+			echo -e "error opening $2" >&2
+			exit 2
+		fi
 	else
-		Transpose $2
-		exit 0
-	fi
-
-
-elif test $1 = "add"
-then
-	if	[ $# -ne 3 ]
-	then echo "invalid number of arguments" >&2
+		echo -e "invalid number of arguments" >&2
 		exit 1
-	elif [ ! -f $2 ]
-	then 
-		echo -e "error opening $2" >&2
-		exit 2
-	elif [ ! -f $3 ]
-	then 
-		echo -e "error opening $3" >&2
-		exit 2
-	fi	
-	Add "${@:2}"
-	exit 0
-
-elif test $1 = "mean"
-then
-	echo "print row vector mean to stdout"
-
-
-elif test $1 = "multiply"
-then
-	echo "multiply two matries"
-
-
+	fi
+#check two matrix operations
+elif [ $1 = "add" ] || [ $1 = "multiply" ] ; then
+	if [ $# = 3 ]; then
+		if [ ! -f $2 ]; then
+			echo -e "could not open $2" >&2
+			exit 2
+		elif [ ! -f $3 ]; then
+			echo -e "could not open $3" >&2
+			exit 2
+		else
+			$1 "${@:2}"
+		fi
+	else
+		echo -e "invalid number of arguments" >&2
+		exit 1
+	fi
 else
-	echo "could not find command $1" >&2
-	exit 1 
+	echo -e "invalid argument: $1" >&2
+	exit 1
 fi
-
