@@ -98,8 +98,13 @@ multiply() {
 		tempm1="$tempm1$$"
 	done
 	touch $tempm1
-#TODO  clean up input matrix 1
-
+	#clean up $1 input and save to tempm1
+	while read mline ; do
+		for x in $mline ; do 
+			echo -n -e "$x\t" | cat >>$tempm1
+		done
+		echo "" | cat >>$tempm1
+	done <$1
 
 	#create safe tempfile to store transposed matrix
 	temptrans="temptrans$$"
@@ -110,20 +115,13 @@ multiply() {
 	touch $temptrans
 	matrix transpose $2 | cat >$temptrans
 	
-	tempX="tempX$$"
-	touch $tempX
-	tempY="tempY$$"
-	touch $tempY
-	tempP="tempP$$"
-	touch $tempP
-
 	range=$(expr $m1cols - 1)
 	for i in $(seq 1 $m1rows ) ; do
 		for j in $(seq 1 $m2cols ) ; do
 			tabcount=0
 			sum=0
 			for k in $(seq 1 $m1cols) ; do
-				X=$( cat <$1 | cut -f $k | head -n $i | tail -n 1 )
+				X=$( cat <$tempm1 | cut -f $k | head -n $i | tail -n 1 )
 				Y=$( cat <$temptrans | cut -f $k | head -n $j | tail -n 1 )
 				echo "X: $X, Y: $Y"
 				product=$(expr $X \* $Y )
