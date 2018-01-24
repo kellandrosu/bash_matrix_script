@@ -109,10 +109,11 @@ multiply() {
 				i=$(expr $i + 1 )
 			done <$2
 			echo -n -e "$sum"
-			[[ $j -lt $(expr $m1cols - 1 ) ]] && echo -e -n "\t"
+			[[ $j -lt $(expr $m2cols - 1 ) ]] && echo -e -n "\t"
 		done
 		echo ""
 	done <$1
+echo "complete"
 }
 
 
