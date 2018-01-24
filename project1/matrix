@@ -74,65 +74,66 @@ add() {
 
 mean(){
 	echo "do mean"
+	
+    #create safe tempfile to store transposed matrix
+    temptrans="temptrans$$"
+    while [ -f $temptrans ]
+    do
+        temptrans="$temptrans$$"
+    done
+    touch $temptrans
+    transpose $2 | cat >$temptrans
+
 }
+
+
 
 multiply() {
 
 	#check if multiplication is valid
-	m1cols=$( head <$1 -n 1 |  wc -w  )
-	m2cols=$( head <$2 -n 1 |  wc -w  )
-	m1rows=$( wc -l <$1 )
-	m2rows=$( wc -l <$2 )
+    m1cols=$( head <$1 -n 1 |  wc -w  )
+    m2cols=$( head <$2 -n 1 |  wc -w  )
+    m1rows=$( wc -l <$1 )
+    m2rows=$( wc -l <$2 )
 
-	#cols in m1 must equal rows in m2
-	if [ $m1cols != $m2rows ]; then
-		echo "matrices cannot be multiplied" >&2
-		exit 4
-	fi
+    #cols in m1 must equal rows in m2
+    if [ $m1cols != $m2rows ]; then
+        echo "matrices cannot be multiplied" >&2
+        exit 4
+    fi
 
+    #create safe tempfile to store transposed matrix
+    temptrans="temptrans$$"
+    while [ -f $temptrans ]
+    do
+        temptrans="$temptrans$$"
+    done
+    touch $temptrans
+    transpose $2 | cat >$temptrans
 
-	#clean m1 matrix
-	tempm1="tempm1$$"
-	while [ -f $tempm1 ]
-	do
-		tempm1="$tempm1$$"
-	done
-	touch $tempm1
-	#clean up $1 input and save to tempm1
-	while read mline ; do
-		for x in $mline ; do 
-			echo -n -e "$x\t" | cat >>$tempm1
-		done
-		echo "" | cat >>$tempm1
+    range=$(( $m1cols - 1))	
+    while read -a m1line
+    do
+            tabcount=1
+        while read -a m2line
+        do
+            sum=0
+
+            for i in $(seq 0 $range)
+            do
+                product=$(( ${m2line[$i]} * ${m1line[$i]} ))
+                sum=$(( sum + product ))
+            done
+            echo -n -e "$sum"
+            if [ $tabcount -lt $m2cols ]
+            then
+              echo -e -n "\t"
+              (( tabcount+=1 ))
+            fi
+        done < $temptrans
+        echo ""
 	done <$1
-
-	#create safe tempfile to store transposed matrix
-	temptrans="temptrans$$"
-	while [ -f $temptrans ]
-	do
-		tempMatrix="$temptrans$$"
-	done
-	touch $temptrans
-	transpose $2 | cat >$temptrans
-	
-	range=$(expr $m1cols - 1)
-	for i in $(seq 1 $m1rows ) ; do
-		for j in $(seq 1 $m2cols ) ; do
-			tabcount=0
-			sum=0
-			for k in $(seq 1 $m1cols) ; do
-				X=$( cat <$tempm1 | cut -f $k | head -n $i | tail -n 1 )
-				Y=$( cat <$temptrans | cut -f $k | head -n $j | tail -n 1 )
-				echo "X: $X, Y: $Y"
-				product=$(expr $X \* $Y )
-				sum=$(expr $sum + $product )
-			done
-			echo -n -e "$sum"
-			[[ $tabcount -lt $range ]] && echo -e -n "\t"
-		done   
-		echo ""
-    done 
-echo "complete"
+	rm -f $temptrans
 }
 
 
