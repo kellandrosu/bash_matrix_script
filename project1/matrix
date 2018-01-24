@@ -90,15 +90,25 @@ multiply() {
 		exit 4
 	fi
 
-	#create safe tempfile to store input matrix
-	tempMatrix="tempfile$$"
-	while [ -f $tempMatrix ]
-	do
-		tempMatrix="$tempMatrix$$"
-	done
-	touch $tempMatrix
 
-	matrix transpose $2 | cat >$tempMatrix
+	#clean m1 matrix
+	tempm1="tempm1$$"
+	while [ -f $tempm1 ]
+	do
+		tempm1="$tempm1$$"
+	done
+	touch $tempm1
+#TODO  clean up input matrix 1
+
+
+	#create safe tempfile to store transposed matrix
+	temptrans="temptrans$$"
+	while [ -f $temptrans ]
+	do
+		tempMatrix="$temptrans$$"
+	done
+	touch $temptrans
+	matrix transpose $2 | cat >$temptrans
 	
 	tempX="tempX$$"
 	touch $tempX
@@ -114,14 +124,14 @@ multiply() {
 			sum=0
 			for k in $(seq 1 $m1cols) ; do
 				X=$( cat <$1 | cut -f $k | head -n $i | tail -n 1 )
-				Y=$( cat <$tempMatrix | cut -f $k | head -n $j | tail -n 1 )
+				Y=$( cat <$temptrans | cut -f $k | head -n $j | tail -n 1 )
 				echo "X: $X, Y: $Y"
 				product=$(expr $X \* $Y )
 				sum=$(expr $sum + $product )
 			done
 			echo -n -e "$sum"
 			[[ $tabcount -lt $range ]] && echo -e -n "\t"
-		done <$tempMatrix   
+		done   
 		echo ""
     done 
 echo "complete"
