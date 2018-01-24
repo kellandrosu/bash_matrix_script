@@ -90,29 +90,40 @@ multiply() {
 		exit 4
 	fi
 
-	#final matrix has rows=m1rows and cols=m2cols
-	#element ij is the dot product of  m1's ith row and m2's jth column
-
-	# based off pseudocode from https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm
-	while read -a m1line
+	#create safe tempfile to store input matrix
+	tempMatrix="tempfile$$"
+	while [ -f $tempMatrix ]
 	do
-		for j in $(seq 0 $(expr $m2cols - 1 ) )
-		do
+		tempMatrix="$tempMatrix$$"
+	done
+	touch $tempMatrix
+
+	matrix transpose $2 | cat >$tempMatrix
+	
+	tempX="tempX$$"
+	touch $tempX
+	tempY="tempY$$"
+	touch $tempY
+	tempP="tempP$$"
+	touch $tempP
+
+	range=$(expr $m1cols - 1)
+	for i in $(seq 1 $m1rows ) ; do
+		for j in $(seq 1 $m2cols ) ; do
+			tabcount=0
 			sum=0
-			i=0
-			while read -a m2line
-			do
-#				a=${m1line[$i]}
-#				b=${m2line[$j]}
-#				echo "m1[$i]=$a, m2[$j]=$b"
-				sum=$(expr $sum + ${m1line[$i]} \* ${m2line[$j]}  )
-				i=$(expr $i + 1 )
-			done <$2
+			for k in $(seq 1 $m1cols) ; do
+				X=$( cat <$1 | cut -f $k | head -n $i | tail -n 1 )
+				Y=$( cat <$tempMatrix | cut -f $k | head -n $j | tail -n 1 )
+				echo "X: $X, Y: $Y"
+				product=$(expr $X \* $Y )
+				sum=$(expr $sum + $product )
+			done
 			echo -n -e "$sum"
-			[[ $j -lt $(expr $m2cols - 1 ) ]] && echo -e -n "\t"
-		done
+			[[ $tabcount -lt $range ]] && echo -e -n "\t"
+		done <$tempMatrix   
 		echo ""
-	done <$1
+    done 
 echo "complete"
 }
 
