@@ -113,7 +113,7 @@ multiply() {
 		tempMatrix="$temptrans$$"
 	done
 	touch $temptrans
-	matrix transpose $2 | cat >$temptrans
+	transpose $2 | cat >$temptrans
 	
 	range=$(expr $m1cols - 1)
 	for i in $(seq 1 $m1rows ) ; do
