@@ -3,7 +3,7 @@
 
 dims(){	
 	# DESCRIPTION
-	#	takes a filename as argument and prints its matrix dimensions
+	#	takes a filename as argument and prints its matrix dimensions to stdout
 	cols=$( head <$1 -n 1 |  wc -w  )
 	rows=$( wc -l <$1 )
 	echo "$rows $cols"
@@ -12,7 +12,7 @@ dims(){
 
 transpose(){
 	# DESCRIPTION: 
-	#	takes a filename as argument and transposes its matrix elements
+	#	takes a filename as argument and transposes its matrix elements. outputs to stdout
 
 	#number of existing rows = number of new columns
 	cols=$( head <$1 -n 1 |  wc -w  )
@@ -39,7 +39,7 @@ transpose(){
 
 add() {
 	# DESCRIPTION
-	#	adds two matrices
+	#	adds two matrices. outputs the result to stdout
 
 	#check if addition is valid
 	m1cols=$( head <$1 -n 1 |  wc -w  )
@@ -60,7 +60,7 @@ add() {
 	while read -a line1
 	do
 		counter=$(expr $counter + 1 )
-		read -a line2 < <( tail -n +$counter $2 )		#read $2 as array starting from line $counter
+		read -a line2 < <( tail -n +$counter $2 )		#read $2 as array starting from line number = $counter
 		for i in ${!line1[@]}							#iterated through line1 without expanding i 
 		do
 			echo -n $(expr ${line1[$i]} + ${line2[$i]} )
@@ -73,23 +73,26 @@ add() {
 
 
 mean(){
+	# DESCRIPTION
+	#	calculates the mean of the elements of each column. outputs it as a row to stdout
 
 	cols=$( head <$1 -n 1 |  wc -w  )
     
-	#create safe tempfile to store transposed matrix
+	#transpose matrix to more easily read columns
+
     temptrans="temptrans$$"
-    while [ -f $temptrans ]
+    while [ -f $temptrans ]			#create safe tempfile to store transposed matrix
     do
         temptrans="$temptrans$$"
     done
     touch $temptrans
     transpose $1 | cat >$temptrans
 	
-	col=1		
+	col=1							#keep track of which column for the purpose of tabs
 	while read line ; do 
 		sum=0
 		count=0
-		for val in $line ; do
+		for val in $line ; do		#sum up elements in column (as a read line)
 			sum=$(( $sum + $val))
 			(( count+=1 ))
 		done
@@ -97,11 +100,12 @@ mean(){
 		mean=$(( ($sum + ($count/2)*( ($sum>0)*2-1 )) / $count ))		
 		echo -n $mean
 		
-		[[ $col -lt  $cols ]] && echo -n -e "\t"
+		[[ $col -lt  $cols ]] && echo -n -e "\t"			#tab-separate elements unless its last element
 		(( col+=1 ))
 		
 	done <$temptrans
 	echo ""
+	rm -f $temptrans
 }
 
 
@@ -120,7 +124,7 @@ multiply() {
         exit 4
     fi
 
-    #create safe tempfile to store transposed matrix
+    #create safe tempfile to store transposed matrix for simpler iterating
     temptrans="temptrans$$"
     while [ -f $temptrans ]
     do
@@ -129,8 +133,7 @@ multiply() {
     touch $temptrans
     transpose $2 | cat >$temptrans
 
-    range=$(( $m1cols - 1))	
-
+    range=$(( $m1cols - 1))			#index length of matrices elements
 
 	while read -a m1line			#iterate through m1 cols
     do
@@ -140,7 +143,7 @@ multiply() {
         do
             sum=0
 
-            for i in $(seq 0 $range)		#iterate through the elements of each row and col
+            for i in $(seq 0 $range)		#iterate through the elements of each row and col and sum up their product
             do
                 product=$(( ${m2line[$i]} * ${m1line[$i]} ))
                 sum=$(( sum + product ))
