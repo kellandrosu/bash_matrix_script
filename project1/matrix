@@ -1,5 +1,8 @@
 #!/bin/bash -e
 
+#	Author:	Andrius Kelly
+#	Date:	Jan 24, 2018
+# 	CS344 Project 1
 
 dims(){	
 	# DESCRIPTION
